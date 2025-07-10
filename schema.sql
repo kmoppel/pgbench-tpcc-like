@@ -112,13 +112,6 @@ CREATE TABLE oorder (
     UNIQUE (o_w_id, o_d_id, o_c_id, o_id)
 );
 
-CREATE TABLE new_order (
-    no_w_id int NOT NULL,
-    no_d_id int NOT NULL,
-    no_o_id int NOT NULL,
-    FOREIGN KEY (no_w_id, no_d_id, no_o_id) REFERENCES oorder (o_w_id, o_d_id, o_id) ON DELETE CASCADE,
-    PRIMARY KEY (no_w_id, no_d_id, no_o_id)
-);
 
 CREATE TABLE order_line (
     ol_w_id int NOT NULL,
@@ -134,4 +127,13 @@ CREATE TABLE order_line (
     FOREIGN KEY (ol_w_id, ol_d_id, ol_o_id) REFERENCES oorder (o_w_id, o_d_id, o_id) ON DELETE CASCADE,
     FOREIGN KEY (ol_supply_w_id, ol_i_id) REFERENCES stock (s_w_id, s_i_id) ON DELETE CASCADE,
     PRIMARY KEY (ol_w_id, ol_d_id, ol_o_id, ol_number)
+);
+
+
+CREATE UNLOGGED TABLE new_order (
+    no_w_id int NOT NULL,
+    no_d_id int NOT NULL,
+    no_o_id int NOT NULL,
+    -- FOREIGN KEY (no_w_id, no_d_id, no_o_id) REFERENCES oorder (o_w_id, o_d_id, o_id) ON DELETE CASCADE,
+    PRIMARY KEY (no_w_id, no_d_id, no_o_id)
 );

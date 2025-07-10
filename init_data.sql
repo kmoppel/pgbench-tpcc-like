@@ -104,3 +104,60 @@ SELECT
   repeat(gen_random_uuid()::text||gen_random_uuid()::text, 5)
 -- For each row in the DISTRICT table 3000 rows in the CUSTOMER table
 FROM generate_series(1, 3000) gsc, generate_series(1, 10) gsd;
+
+
+
+INSERT INTO history (h_c_id, h_d_id, h_c_d_id, h_c_w_id, h_w_id, h_date, h_amount, h_data)
+SELECT
+  c_id,
+  c_d_id,
+  c_d_id,
+  c_w_id,
+  c_w_id,
+  now(),
+  10.0,
+  tdgen.random_text(12, 24)
+-- For each row in the CUSTOMER table 1 row in the H ISTORY table
+FROM customer ;
+
+
+
+INSERT INTO oorder (o_id, o_c_id, o_d_id, o_w_id, o_entry_d, o_carrier_id, o_ol_cnt, o_all_local)
+SELECT
+  d_id * 3000 + gs,
+  3000*random(),
+  d_id,
+  d_w_id,
+  now(),
+  case when gs < 2011 then random()*10 else null end case,
+  random()*15,
+  1
+-- For each DISTRICT 3,000 rows in the ORDER table
+FROM district, generate_series(1, 3000) gs;
+
+
+
+INSERT INTO order_line (ol_o_id, ol_d_id, ol_w_id, ol_number, ol_i_id, ol_supply_w_id, ol_delivery_d,
+           ol_quantity, ol_amount, ol_dist_info )
+SELECT
+  o_id,
+  o_d_id,
+  o_w_id,
+  gs,
+  random()*1e5,
+  o_w_id,
+  case when o_id < 2101 then o_entry_d else null end case,
+  5,
+  case when o_id < 2101 then 0 else tdgen.random_float(0.01, 9999.99) end case,
+  tdgen.random_text(24, 24)
+-- For each row in the ORDER table a number of rows in the ORDER-LINE table equal to O_OL_CNT
+FROM oorder, generate_series(1, oorder.o_ol_cnt) gs;
+
+
+-- 900 rows in the NEW-ORDER table corresponding to the last 900 rows in the ORDER table for that district
+INSERT INTO new_order (no_o_id, no_d_id, no_w_id)
+SELECT
+  o_id,
+  o_d_id,
+  o_w_id
+FROM oorder WHERE o_id > 2100 ;
