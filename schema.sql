@@ -1,6 +1,6 @@
 DROP TABLE IF EXISTS warehouse, item, stock, district, customer, history, oorder, order_line, new_order ;
 
-CREATE UNLOGGED TABLE warehouse (
+CREATE UNLOGGED TABLE IF NOT EXISTS warehouse (
     w_id int8 NOT NULL,
     w_ytd numeric(12, 2) NOT NULL,
     w_tax numeric(4, 4) NOT NULL,
@@ -13,7 +13,7 @@ CREATE UNLOGGED TABLE warehouse (
     PRIMARY KEY (w_id)
 );
 
-CREATE UNLOGGED TABLE item (
+CREATE UNLOGGED TABLE IF NOT EXISTS item (
     i_id int NOT NULL,
     i_name varchar(24) NOT NULL,
     i_price numeric(5, 2) NOT NULL,
@@ -22,7 +22,7 @@ CREATE UNLOGGED TABLE item (
     PRIMARY KEY (i_id)
 );
 
-CREATE UNLOGGED TABLE stock (
+CREATE UNLOGGED TABLE IF NOT EXISTS stock (
     s_w_id int8 NOT NULL,
     s_i_id int NOT NULL,
     s_quantity int NOT NULL,
@@ -45,7 +45,7 @@ CREATE UNLOGGED TABLE stock (
     PRIMARY KEY (s_w_id, s_i_id)
 );
 
-CREATE UNLOGGED TABLE district (
+CREATE UNLOGGED TABLE IF NOT EXISTS district (
     d_w_id int8 NOT NULL,
     d_id int NOT NULL,
     d_ytd numeric(12, 2) NOT NULL,
@@ -61,7 +61,7 @@ CREATE UNLOGGED TABLE district (
     PRIMARY KEY (d_w_id, d_id)
 );
 
-CREATE UNLOGGED TABLE customer (
+CREATE UNLOGGED TABLE IF NOT EXISTS customer (
     c_w_id int8 NOT NULL,
     c_d_id int NOT NULL,
     c_id int NOT NULL,
@@ -87,7 +87,7 @@ CREATE UNLOGGED TABLE customer (
     PRIMARY KEY (c_w_id, c_d_id, c_id)
 );
 
-CREATE UNLOGGED TABLE history (
+CREATE UNLOGGED TABLE IF NOT EXISTS history (
     h_c_id int NOT NULL,
     h_c_d_id int NOT NULL,
     h_c_w_id int8 NOT NULL,
@@ -100,7 +100,7 @@ CREATE UNLOGGED TABLE history (
     FOREIGN KEY (h_w_id, h_d_id) REFERENCES district (d_w_id, d_id)
 );
 
-CREATE UNLOGGED TABLE oorder (
+CREATE UNLOGGED TABLE IF NOT EXISTS oorder (
     o_w_id int8 NOT NULL,
     o_d_id int NOT NULL,
     o_id int8 NOT NULL,
@@ -115,7 +115,7 @@ CREATE UNLOGGED TABLE oorder (
 );
 
 
-CREATE UNLOGGED TABLE order_line (
+CREATE UNLOGGED TABLE IF NOT EXISTS order_line (
     ol_w_id int8 NOT NULL,
     ol_d_id int NOT NULL,
     ol_o_id int8 NOT NULL,
@@ -132,7 +132,7 @@ CREATE UNLOGGED TABLE order_line (
 );
 
 
-CREATE UNLOGGED TABLE new_order (
+CREATE UNLOGGED TABLE IF NOT EXISTS new_order (
     no_w_id int8 NOT NULL,
     no_d_id int NOT NULL,
     no_o_id int8 NOT NULL,
