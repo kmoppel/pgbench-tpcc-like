@@ -36,16 +36,61 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+create or replace function
+  pg_temp.random_text(
+    min_len int,
+    max_len int default 0,
+    allowed_chars text default 'abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789'
+  ) returns text
+language plpgsql
+as $$
+declare
+  ret_string text;
+  len int;
+begin
+    if max_len = 0 then
+        len := min_len;
+    else
+        len := min_len + floor(random()*(max_len - min_len))::int;
+    end if;
+    select array_to_string(array(select substr(allowed_chars, (1 + floor(random()*length(allowed_chars))::int), 1) from generate_series(1, len)), '') INTO ret_string;
+    return ret_string;
+end;
+$$;
+
+create or replace function
+  pg_temp.random_int(
+    min_val int default 0,
+    max_val int default 2147483647
+  ) returns int
+language sql
+as $$
+    select min_val + ((max_val - min_val)*random())::int;
+$$;
+
+
+create or replace function
+  pg_temp.random_float(
+    min_val float default 0,
+    max_val float default 1E+308
+  ) returns float
+language sql
+as $$
+    select min_val + ((max_val - min_val)*random());
+$$;
+
+
+
 
 INSERT INTO item (i_id, i_im_id, i_name, i_price, i_data)
 SELECT
   gs,
   random()*1e4,
-  tdgen.random_text(14, 24),
-  tdgen.random_float(1, 100),
+  pg_temp.random_text(14, 24),
+  pg_temp.random_float(1, 100),
   CASE
-    WHEN random() < 0.1 THEN tdgen.random_text(10, 20) || ' ORIGINAL ' || tdgen.random_text(10, 20)
-    ELSE tdgen.random_text(26, 50)
+    WHEN random() < 0.1 THEN pg_temp.random_text(10, 20) || ' ORIGINAL ' || pg_temp.random_text(10, 20)
+    ELSE pg_temp.random_text(26, 50)
   END CASE
 FROM generate_series(1, 1e5) gs ;
 
@@ -61,13 +106,13 @@ INSERT INTO warehouse (
   w_ytd
 )
 SELECT
-  'wh-' || tdgen.random_text(3,7),
-  'str-' || tdgen.random_text(6,16),
-  'str-' || tdgen.random_text(6,16),
-  'ct-' || tdgen.random_text(6,16),
-  tdgen.random_text(2, 2, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'),
-  tdgen.random_text(5, 5, '0123456789'), -- W_ZIP generated accord ing to Clause 4.3.2.7
-  tdgen.random_float(0, 0.2),
+  'wh-' || pg_temp.random_text(3,7),
+  'str-' || pg_temp.random_text(6,16),
+  'str-' || pg_temp.random_text(6,16),
+  'ct-' || pg_temp.random_text(6,16),
+  pg_temp.random_text(2, 2, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'),
+  pg_temp.random_text(5, 5, '0123456789'), -- W_ZIP generated accord ing to Clause 4.3.2.7
+  pg_temp.random_float(0, 0.2),
   300000
 ;
 
@@ -77,23 +122,23 @@ INSERT INTO stock (s_w_id, s_i_id, s_quantity, s_dist_01, s_dist_02, s_dist_03, 
 SELECT
   w_id,
   gs,
-  tdgen.random_int(10, 100),
-  tdgen.random_text(24, 24),
-  tdgen.random_text(24, 24),
-  tdgen.random_text(24, 24),
-  tdgen.random_text(24, 24),
-  tdgen.random_text(24, 24),
-  tdgen.random_text(24, 24),
-  tdgen.random_text(24, 24),
-  tdgen.random_text(24, 24),
-  tdgen.random_text(24, 24),
-  tdgen.random_text(24, 24),
+  pg_temp.random_int(10, 100),
+  pg_temp.random_text(24, 24),
+  pg_temp.random_text(24, 24),
+  pg_temp.random_text(24, 24),
+  pg_temp.random_text(24, 24),
+  pg_temp.random_text(24, 24),
+  pg_temp.random_text(24, 24),
+  pg_temp.random_text(24, 24),
+  pg_temp.random_text(24, 24),
+  pg_temp.random_text(24, 24),
+  pg_temp.random_text(24, 24),
   0,
   0,
   0,
   CASE
-    WHEN random() < 0.1 THEN tdgen.random_text(10, 20) || ' ORIGINAL ' || tdgen.random_text(10, 20)
-    ELSE tdgen.random_text(26, 50)
+    WHEN random() < 0.1 THEN pg_temp.random_text(10, 20) || ' ORIGINAL ' || pg_temp.random_text(10, 20)
+    ELSE pg_temp.random_text(26, 50)
   END CASE
 FROM warehouse, generate_series(1, 1e5) gs;
 
@@ -107,13 +152,13 @@ INSERT INTO district (
 SELECT
   gs,
   w_id,
-  tdgen.random_text(6,10, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'),
-  'str-' || tdgen.random_text(6,16),
-  'str-' || tdgen.random_text(6,16),
-  'ct-' || tdgen.random_text(6,16),
-  tdgen.random_text(2, 2, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'),
-  tdgen.random_text(5, 5, '0123456789'), -- W_ZIP generated accord ing to Clause 4.3.2.7
-  tdgen.random_float(0, 0.2),
+  pg_temp.random_text(6,10, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'),
+  'str-' || pg_temp.random_text(6,16),
+  'str-' || pg_temp.random_text(6,16),
+  'ct-' || pg_temp.random_text(6,16),
+  pg_temp.random_text(2, 2, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'),
+  pg_temp.random_text(5, 5, '0123456789'), -- W_ZIP generated accord ing to Clause 4.3.2.7
+  pg_temp.random_float(0, 0.2),
   30000,
   3001
 FROM warehouse, generate_series(1, 10) gs ;
@@ -126,18 +171,18 @@ SELECT
   (d_w_id-1)*30000 + (d_id-1)*3000 + gs,
   d_id,
   d_w_id,
-  tdgen.random_text(8, 16),  -- c_first
+  pg_temp.random_text(8, 16),  -- c_first
   'OE',  -- c_middle
   CASE WHEN gs <= 1000 THEN pg_temp.c_last_name_from_random_syllables() ELSE pg_temp.nurand(255,0,999)::text END CASE,
-  'str-' || tdgen.random_text(6,16),
-  'str-' || tdgen.random_text(6,16),
-  'ct-' || tdgen.random_text(6,16),
-  tdgen.random_text(2, 2, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'),
-  tdgen.random_text(5, 5, '0123456789'), -- W_ZIP generated accord ing to Clause 4.3.2.7
-  tdgen.random_text(16, 16, '0123456789'),
+  'str-' || pg_temp.random_text(6,16),
+  'str-' || pg_temp.random_text(6,16),
+  'ct-' || pg_temp.random_text(6,16),
+  pg_temp.random_text(2, 2, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'),
+  pg_temp.random_text(5, 5, '0123456789'), -- W_ZIP generated accord ing to Clause 4.3.2.7
+  pg_temp.random_text(16, 16, '0123456789'),
   CASE WHEN gs % 10 = 0 THEN 'BC' ELSE 'GC' END CASE,
   50000,
-  tdgen.random_float(0, 0.5),
+  pg_temp.random_float(0, 0.5),
   -10,
   10,
   1,
@@ -157,7 +202,7 @@ SELECT
   c_w_id,
   now(),
   10.0,
-  tdgen.random_text(12, 24)
+  pg_temp.random_text(12, 24)
 -- For each row in the CUSTOMER table 1 row in the H ISTORY table
 FROM customer ;
 
@@ -186,12 +231,12 @@ SELECT
   o_d_id,
   o_w_id,
   gs,
-  tdgen.random_int(1, 100000),
+  pg_temp.random_int(1, 100000),
   o_w_id,
   case when o_id < (o_w_id-1)*30000 + (o_d_id-1)*3000 + 2101 then o_entry_d else null end case,
   5,
-  case when o_id < (o_w_id-1)*30000 + (o_d_id-1)*3000 + 2101 then 0 else tdgen.random_float(0.01, 9999.99) end case,
-  tdgen.random_text(24, 24)
+  case when o_id < (o_w_id-1)*30000 + (o_d_id-1)*3000 + 2101 then 0 else pg_temp.random_float(0.01, 9999.99) end case,
+  pg_temp.random_text(24, 24)
 -- For each row in the ORDER table a number of rows in the ORDER-LINE table equal to O_OL_CNT
 FROM oorder, generate_series(1, oorder.o_ol_cnt) gs;
 
