@@ -260,3 +260,56 @@ $$;
 
 
 
+
+
+create or replace function tpcc_utils.new_order_add_line_items(warehouse_id int8, district_id int, order_id int8,
+  ol_cnt int, d_tax numeric, w_tax numeric, c_discount numeric) returns void
+language plpgsql
+as $$
+declare
+  l_i_id int;
+  l_i_price numeric;
+  l_i_qty numeric;
+  l_i_name text;
+  l_i_data text;
+  l_s_qty int;
+  l_s_data text;
+  l_dist_info text;
+begin
+
+  for i in 1 .. ol_cnt loop
+    l_i_id := tpcc_utils.random_int(1, 100000);
+    l_i_qty := tpcc_utils.random_int(1, 10);
+
+    SELECT i_price, i_name, i_data INTO l_i_price, l_i_name, l_i_data FROM item WHERE i_id = l_i_id;
+
+    -- Get stock info
+    SELECT s_quantity, s_data, s_dist_01
+    INTO l_s_qty, l_s_data, l_dist_info
+    FROM stock
+    WHERE s_i_id = l_i_id AND s_w_id = warehouse_id
+    FOR UPDATE;
+
+    -- Update stock quantity
+    UPDATE stock
+    SET s_quantity = s_quantity - l_i_qty,
+        s_ytd = s_ytd + l_i_qty,
+        s_order_cnt = s_order_cnt + 1
+    WHERE s_i_id = l_i_id AND s_w_id = warehouse_id;
+
+    -- Insert order line
+    INSERT INTO order_line (
+        ol_o_id, ol_d_id, ol_w_id, ol_number,
+        ol_i_id, ol_supply_w_id, ol_delivery_d,
+        ol_quantity, ol_amount, ol_dist_info
+    )
+    VALUES (
+        order_id, district_id, warehouse_id, i,
+        l_i_id, warehouse_id, NULL,
+        l_i_qty, l_i_qty * l_i_price * (1 + w_tax + d_tax) * (1 - c_discount), l_dist_info
+    );
+
+  end loop ;
+
+end;
+$$ ;

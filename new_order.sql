@@ -16,8 +16,12 @@ SELECT coalesce(current_setting('tpcc_like.client_id_'||:client_id, true)::int, 
 \set d_id random(1, 10)
 
 -- SPEC: The non-uniform random customer number (C_ID) is selected using the NURand (1023,1,3000) function
--- Here: just apply Pareto, i.e. 20% of hot customers
-\set c_id random_zipfian(1, 3000, 0.86)
+-- Here: just apply Pareto, i.e. 20% of hot customers (3K per district)
+\set c_id random(1, 600)
+-- 2.4.1.3 The number of items in the order (ol_cnt) is randomly selected within [5 .. 15] (an average of 10)
+\set ol_cnt random(5, 15)
+
+BEGIN;
 
 -- 1. Get district and warehouse tax
 SELECT d_tax, w_tax FROM district d JOIN warehouse w ON w.w_id = d.d_w_id WHERE d_w_id = :w_id AND d_id = :d_id \gset
@@ -30,50 +34,17 @@ WHERE c_w_id = :w_id AND c_d_id = :d_id AND c_id = :c_id \gset
 -- 3. Update district's next order ID
 UPDATE district
 SET d_next_o_id = d_next_o_id + 1
-WHERE d_w_id = :w_id AND d_id = :d_id;
+WHERE d_w_id = :w_id AND d_id = :d_id
+RETURNING d_next_o_id AS o_id \gset
 
-\set o_ol_cnt random(1,15)
 -- 4. Insert new order into ORDERS
-INSERT INTO orders (o_id, o_d_id, o_w_id, o_c_id, o_entry_d, o_ol_cnt, o_all_local)
-VALUES (:o_id, :d_id, :w_id, :c_id, now(), o_ol_cnt, 1);
+INSERT INTO oorder (o_id, o_d_id, o_w_id, o_c_id, o_entry_d, o_ol_cnt, o_all_local)
+VALUES (:o_id, :d_id, :w_id, :c_id, now(), :ol_cnt, 1);
 
 -- 5. Insert into NEW_ORDER
 INSERT INTO new_order (no_o_id, no_d_id, no_w_id)
 VALUES (:o_id, :d_id, :w_id);
 
--- 6. For each item in the order:
--- TODO for each loop a new item!
-\set i_id random(1, 100000)
-\set qty random(1, 10)
+SELECT tpcc_utils.new_order_add_line_items(:w_id, :d_id, :o_id, :ol_cnt, :d_tax, :w_tax, :c_discount);
 
-
-SELECT i_price, i_name, i_data FROM item WHERE i_id = :i_id \gset
-
--- Get stock info
-SELECT s_quantity, s_data, s_dist_01 -- (district depends on d_id)
-FROM stock
-WHERE s_i_id = :i_id AND s_w_id = :w_id
-FOR UPDATE;
-
--- Update stock quantity
-UPDATE stock
-SET s_quantity = s_quantity - :qty,
-    s_ytd = s_ytd + :qty,
-    s_order_cnt = s_order_cnt + 1,
-    s_remote_cnt = s_remote_cnt + :remote_flag
-WHERE s_i_id = :i_id AND s_w_id = :w_id;
-
-\set ol_quantity 1
-\set ol_amount :qty * :i_price * (1 + :w_tax + :d_tax) * (1 - :c_discount)
-
--- Insert order line
-INSERT INTO order_line (
-    ol_o_id, ol_d_id, ol_w_id, ol_number,
-    ol_i_id, ol_supply_w_id, ol_delivery_d,
-    ol_quantity, ol_amount, ol_dist_info
-)
-VALUES (
-    :o_id, :d_id, :w_id, 1, -- TODO loop counter
-    :i_id, :w_id, NULL,
-    :qty, :amount, :dist_info
-);
+COMMIT;
