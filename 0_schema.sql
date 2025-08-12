@@ -139,3 +139,124 @@ CREATE UNLOGGED TABLE IF NOT EXISTS new_order (
     FOREIGN KEY (no_w_id, no_d_id, no_o_id) REFERENCES oorder (o_w_id, o_d_id, o_id),
     PRIMARY KEY (no_w_id, no_d_id, no_o_id)
 );
+
+
+/* TPCC_UTILS schema + functions
+   Helpers to generate random / dummy data
+*/
+
+CREATE SCHEMA IF NOT EXISTS tpcc_utils ;
+GRANT USAGE ON SCHEMA tpcc_utils TO public ;
+
+CREATE OR REPLACE FUNCTION tpcc_utils.c_last_name_from_random_syllables() RETURNS text
+AS $$
+DECLARE
+  l_syllables text[] := array['BAR', 'OUGHT', 'ABLE', 'PRI', 'PRES', 'ESE', 'ANTI', 'CALLY', 'ATION', 'EING'];
+  l_rand text[] := regexp_split_to_array(lpad((random() * 999)::int::text, 3, '0'), '');
+BEGIN
+  -- raise notice 'l_rand %', l_rand ;
+  RETURN l_syllables[l_rand[1]::int+1] || l_syllables[l_rand[2]::int+1] || l_syllables[l_rand[3]::int+1];
+END;
+$$ LANGUAGE plpgsql ;
+
+
+
+-- NURand function
+CREATE OR REPLACE FUNCTION tpcc_utils.nurand(A INTEGER, x INTEGER, y INTEGER)
+RETURNS INTEGER AS $$
+DECLARE
+    i INTEGER;
+    j INTEGER;
+    C INTEGER := 1;  -- Simplifying the standard here with C=1 so that the don't have to make the app "C-aware". As per standard:
+                     -- C is a run-time constant randomly chosen within [0 .. A] that can be varied with out altering performance.
+                     -- The same C value, per field (C_LAST, C_ID, and OL_I_ID), must be used by all emulated terminals.
+BEGIN
+    IF NOT (A = 255 OR A = 1023 OR A = 8191) THEN
+        RAISE EXCEPTION 'Invalid A value: %. Must be 255, 1023, or 8191', A;
+    END IF;
+
+    -- Generate random values
+    i := floor(random() * (A + 1))::INTEGER;     -- 0 to A
+    j := floor(random() * (y - x + 1) + x)::INTEGER; -- x to y
+
+    -- Calculate and return the NURand value
+    -- PostgreSQL uses # for bitwise OR
+    RETURN (((i # j) + C) % (y - x + 1)) + x;
+END;
+$$ LANGUAGE plpgsql;
+
+
+create or replace function
+  tpcc_utils.random_text(
+    min_len int,
+    max_len int default 0,
+    allowed_chars text default 'abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789'
+  ) returns text
+language plpgsql
+as $$
+declare
+  ret_string text;
+  len int;
+begin
+    if max_len = 0 then
+        len := min_len;
+    else
+        len := min_len + floor(random()*(max_len - min_len))::int;
+    end if;
+    select array_to_string(array(select substr(allowed_chars, (1 + floor(random()*length(allowed_chars))::int), 1) from generate_series(1, len)), '') INTO ret_string;
+    return ret_string;
+end;
+$$;
+
+
+
+create or replace function
+  tpcc_utils.random_text_uuid_based(
+    min_len int,
+    max_len int default 0
+  ) returns text
+language plpgsql
+as $$
+declare
+  ret_string text := '';
+  len int;
+begin
+    if max_len = 0 then
+        len := min_len;
+    else
+        len := min_len + floor(random()*(max_len - min_len))::int;
+    end if;
+
+    loop
+       ret_string := ret_string || gen_random_uuid() ;
+       if length(ret_string) >= len then
+           exit ;
+       end if ;
+    end loop ;
+    return substring(ret_string, 1, len) ;
+end;
+$$;
+
+create or replace function
+  tpcc_utils.random_int(
+    min_val int default 0,
+    max_val int default 2147483647
+  ) returns int
+language sql
+as $$
+    select min_val + ((max_val - min_val)*random())::int;
+$$;
+
+
+create or replace function
+  tpcc_utils.random_float(
+    min_val float default 0,
+    max_val float default 1E+308
+  ) returns float
+language sql
+as $$
+    select min_val + ((max_val - min_val)*random());
+$$;
+
+
+
