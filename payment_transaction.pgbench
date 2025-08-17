@@ -1,0 +1,86 @@
+SELECT coalesce(current_setting('tpcc_like.client_id_'||:client_id, true)::int, 0) AS w_id \gset
+
+\if :w_id
+    SELECT 'OK - session is using w_id ' || :w_id ;
+\else
+    -- Pick a random warehouse for the whole duration of the session
+    SELECT w_id AS w_id FROM warehouse ORDER BY random() LIMIT 1 \gset
+    SELECT set_config( 'tpcc_like.client_id_'|| :client_id, ':w_id', false) ;
+\endif
+
+\set amount random(1, 5000)
+\set d_id random(1, 10)
+-- random ( lb, ub ) → integer Computes a uniformly-distributed random integer in [lb, ub].
+\set x random(1, 100)
+\set y random(1, 100)
+
+/*
+The district number (D_ID) is randomly selected within [1 ..10] from the home warehouse (D_W_ID) = W_ID).
+*/
+
+-- 1. Update warehouse YTD
+UPDATE warehouse
+SET w_ytd = w_ytd + :amount
+WHERE w_id = :w_id;
+
+-- 2. Update district YTD
+UPDATE district
+SET d_ytd = d_ytd + :amount
+WHERE d_w_id = :w_id AND d_id = :d_id;
+
+
+/* The customer is randomly selected 60% of the time by last name (C_W_ID , C_D_ID, C_LAST) and 40% of
+the time by number (C_W_ID , C_D_ID , C_ID). Independent of the mode of selection, the customer resident
+warehouse is the home warehouse 85% of the time and is a randomly selected remote warehouse 15% of the time.
+This can be implemented by generating two random numbers x and y within [1 .. 100];
+*/
+-- 3. Get customer by ID or name (if using name, fetch mid-record by last name)
+\if :y <= 60
+    SELECT tpcc_utils.c_last_name_from_random_syllables() AS c_last_random \gset
+    SELECT c_id FROM customer
+    WHERE c_w_id = :w_id AND c_d_id = :d_id AND c_last = ':c_last_random'
+    UNION ALL
+    SELECT tpcc_utils.random_int(1, 3000)
+    LIMIT 1 \gset
+\else
+    SELECT tpcc_utils.nurand(1023, 1, 3000) AS c_id \gset
+\endif
+
+\if :x <= 85
+    SELECT c_w_id
+    FROM customer
+    WHERE c_w_id = :w_id AND c_d_id = :d_id AND c_id = :c_id \gset
+\else
+    SELECT w_id AS c_w_id FROM warehouse ORDER BY random() LIMIT 1 \gset
+\endif
+
+SELECT c_balance, c_credit
+FROM customer
+WHERE c_w_id = :w_id AND c_d_id = :d_id AND c_id = :c_id
+FOR UPDATE \gset
+
+--\if :y <= 60
+---- Case 2, the customer is selected based on customer last name
+--\else
+---- Case 1, the customer is selected based on customer number
+--\endif
+
+-- 4. Update customer balance
+UPDATE customer
+SET c_balance = c_balance - :amount,
+    c_ytd_payment = c_ytd_payment + :amount,
+    c_payment_cnt = c_payment_cnt + 1
+WHERE c_w_id = :c_w_id AND c_d_id = :d_id AND c_id = :c_id;
+
+-- 5. If customer is bad credit, update c_data TODO
+-- \if :c_credit == 'BC'
+
+-- 6. Insert into history
+INSERT INTO history (
+    h_c_id, h_c_d_id, h_c_w_id,
+    h_d_id, h_w_id, h_date, h_amount, h_data
+)
+VALUES (
+    :c_id, :d_id, :c_w_id,
+    :d_id, :w_id, now(), :amount, 'h_data'
+);
