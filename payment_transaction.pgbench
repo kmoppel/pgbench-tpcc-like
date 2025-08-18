@@ -65,7 +65,8 @@ FOR UPDATE \gset
 UPDATE customer
 SET c_balance = c_balance - :amount,
     c_ytd_payment = c_ytd_payment + :amount,
-    c_payment_cnt = c_payment_cnt + 1
+    c_payment_cnt = c_payment_cnt + 1,
+    c_mtime = now()
 WHERE c_w_id = :c_w_id AND c_d_id = :d_id AND c_id = :c_id;
 
 -- 5. If customer is bad credit, update c_data -- SKIP, just adds a bit of computation to client

@@ -40,10 +40,12 @@ CREATE UNLOGGED TABLE IF NOT EXISTS stock (
     s_dist_08 char(24) NOT NULL,
     s_dist_09 char(24) NOT NULL,
     s_dist_10 char(24) NOT NULL,
+    s_mtime timestamp,
     FOREIGN KEY (s_w_id) REFERENCES warehouse (w_id),
     FOREIGN KEY (s_i_id) REFERENCES item (i_id),
     PRIMARY KEY (s_w_id, s_i_id)
 );
+CREATE INDEX IF NOT EXISTS stock_mtime ON stock(s_mtime) WHERE s_mtime NOTNULL;
 
 CREATE UNLOGGED TABLE IF NOT EXISTS district (
     d_w_id int8 NOT NULL,
@@ -83,9 +85,11 @@ CREATE UNLOGGED TABLE IF NOT EXISTS customer (
     c_since timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
     c_middle char(2) NOT NULL,
     c_data varchar(500) NOT NULL,
+    c_mtime timestamp,
     FOREIGN KEY (c_w_id, c_d_id) REFERENCES district (d_w_id, d_id),
     PRIMARY KEY (c_w_id, c_d_id, c_id)
 );
+CREATE INDEX IF NOT EXISTS customer_mtime ON customer(c_mtime) WHERE c_mtime NOTNULL;
 
 CREATE UNLOGGED TABLE IF NOT EXISTS history (
     h_c_id int NOT NULL,
@@ -294,7 +298,8 @@ begin
     UPDATE stock
     SET s_quantity = s_quantity - l_i_qty,
         s_ytd = s_ytd + l_i_qty,
-        s_order_cnt = s_order_cnt + 1
+        s_order_cnt = s_order_cnt + 1,
+        s_mtime = now()
     WHERE s_i_id = l_i_id AND s_w_id = warehouse_id;
 
     -- Insert order line
