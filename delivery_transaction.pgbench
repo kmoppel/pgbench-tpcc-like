@@ -1,4 +1,5 @@
--- TODO For each of 10 districts (d_id from 1 to 10):
+-- TODO Looping? The Delivery business transaction consists of processing a batch of 10 new (not yet delivered ) orders
+-- The same actually if it runs a bit more often than in spec?
 
 -- The Delivery transaction is intended to be executed in deferred mode through a queuing mechanism
 \sleep 50 ms
