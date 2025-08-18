@@ -11,7 +11,7 @@ SELECT coalesce(current_setting('tpcc_like.client_id_'||:client_id, true)::int8,
 \set d_id random(1, 10)
 \set y random(1, 100)
 
-BEGIN;
+BEGIN TRANSACTION READ ONLY ;
 
 /* The customer is randomly selected 60% of the time by last name (C_W_ID, C_D_ID, C_LAST) and 40% of the time by
 number (C_W_ID, C_D_ID, C_ID)
