@@ -3,7 +3,7 @@ SPEC: For any given terminal, the home warehouse number (W_ID) is constant over 
 Let's use Postgres session vars for that -- client_id
 */
 
-SELECT coalesce(current_setting('tpcc_like.client_id_'||:client_id, true)::int, 0) AS w_id \gset
+SELECT coalesce(current_setting('tpcc_like.client_id_'||:client_id, true)::int8, 0) AS w_id \gset
 
 \if :w_id
     SELECT 'OK - session is using w_id ' || :w_id ;

@@ -1,0 +1,50 @@
+SELECT coalesce(current_setting('tpcc_like.client_id_'||:client_id, true)::int8, 0) AS w_id \gset
+
+\if :w_id
+    SELECT 'OK - session is using w_id ' || :w_id ;
+\else
+    -- Pick a random warehouse for the whole duration of the session
+    SELECT w_id AS w_id FROM warehouse ORDER BY random() LIMIT 1 \gset
+    SELECT set_config( 'tpcc_like.client_id_'|| :client_id, ':w_id', false) ;
+\endif
+
+\set d_id random(1, 10)
+\set y random(1, 100)
+
+BEGIN;
+
+/* The customer is randomly selected 60% of the time by last name (C_W_ID, C_D_ID, C_LAST) and 40% of the time by
+number (C_W_ID, C_D_ID, C_ID)
+*/
+-- 3. Get customer by ID or name (if using name, fetch mid-record by last name)
+\if :y <= 60
+    SELECT tpcc_utils.c_last_name_from_random_syllables() AS c_last_random \gset
+    SELECT c_id FROM customer
+    WHERE c_w_id = :w_id AND c_d_id = :d_id AND c_last = ':c_last_random'
+    UNION ALL
+    SELECT tpcc_utils.random_int(1, 3000)
+    LIMIT 1 \gset
+\else
+    SELECT tpcc_utils.nurand(1023, 1, 3000) AS c_id \gset
+\endif
+
+-- 1. Get customer (by ID or by name)
+SELECT c_id, c_first, c_middle, c_last, c_balance
+FROM customer
+WHERE c_w_id = :w_id AND c_d_id = :d_id AND c_id = :c_id;
+
+-- 2. Get last order by customer
+SELECT o_id, o_entry_d, o_carrier_id
+FROM oorder
+WHERE o_w_id = :w_id AND o_d_id = :d_id AND o_c_id = :c_id
+ORDER BY o_id DESC
+LIMIT 1 \gset
+
+-- 3. Get all order lines for the order
+-- TODO does spec mean one-by-one in some loop?
+SELECT ol_i_id, ol_supply_w_id, ol_quantity, ol_amount, ol_delivery_d
+FROM order_line
+WHERE ol_w_id = :w_id AND ol_d_id = :d_id AND ol_o_id = :o_id
+ORDER BY ol_number;
+
+COMMIT;
