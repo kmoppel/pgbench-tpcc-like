@@ -1,0 +1,16 @@
+SELECT coalesce(current_setting('tpcc_like.client_id_'||:client_id, true)::int8, 0) AS w_id \gset
+
+\if :w_id
+    SELECT 'OK - session is using w_id ' || :w_id ;
+\else
+    -- Pick a random warehouse for the whole duration of the session
+    SELECT w_id AS w_id FROM warehouse ORDER BY random() LIMIT 1 \gset
+    SELECT set_config( 'tpcc_like.client_id_'|| :client_id, ':w_id', false) ;
+\endif
+
+\set d_id random(1, 10)
+
+-- 2.8.1.2 The threshold of minimum quantity in stock (threshold ) is selected at random within [10 .. 20].
+\set threshold random(10, 20)
+
+SELECT * FROM tpcc_utils.get_low_stock_items(:w_id, :d_id, :threshold);

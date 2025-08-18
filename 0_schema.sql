@@ -50,7 +50,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS district (
     d_id int NOT NULL,
     d_ytd numeric(12, 2) NOT NULL,
     d_tax numeric(4, 4) NOT NULL,
-    d_next_o_id int NOT NULL,
+    d_next_o_id int8 NOT NULL,
     d_name varchar(10) NOT NULL,
     d_street_1 varchar(20) NOT NULL,
     d_street_2 varchar(20) NOT NULL,
@@ -313,3 +313,36 @@ begin
 
 end;
 $$ ;
+
+
+create or replace function tpcc_utils.get_low_stock_items(warehouse_id int8, district_id int, threshold int) returns TABLE(item_id int, stock int)
+language plpgsql
+as $$
+declare
+  l_next_o_id int8;
+  l_item_ids int8[];
+  r record;
+begin
+
+-- Get next order ID for the district
+SELECT d_next_o_id into l_next_o_id
+FROM district
+WHERE d_w_id = warehouse_id AND d_id = district_id;
+
+-- Examine all items on the last 20 orders for the district, comprised of:
+-- (20 * items-per-order) row selections with data retrieval.
+SELECT array_agg(DISTINCT ol_i_id) INTO l_item_ids
+FROM order_line
+WHERE ol_w_id = warehouse_id AND ol_d_id = district_id
+  AND ol_o_id >= l_next_o_id - 20 AND ol_o_id < l_next_o_id;
+
+-- Examine, for each distinct item selected, if the level of stock available at the home warehouse is below the threshold
+RETURN QUERY
+SELECT s_i_id, s_quantity
+FROM stock
+WHERE s_w_id = warehouse_id
+AND s_i_id = ANY(l_item_ids::int8[])
+AND s_quantity < threshold;
+
+end;
+$$;
