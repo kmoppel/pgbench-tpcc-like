@@ -1,5 +1,7 @@
 -- Requires util.* functions from 0_schema.sql !
 
+BEGIN ;
+LOCK TABLE item ; -- items are shared over warehouses
 INSERT INTO item (i_id, i_im_id, i_name, i_price, i_data)
 SELECT
   gs,
@@ -12,7 +14,9 @@ SELECT
   END CASE
 FROM generate_series(1, 1e5) gs
 WHERE NOT EXISTS (select * from item limit 1);
+COMMIT ;
 
+BEGIN;
 
 INSERT INTO warehouse (
   w_id,
@@ -171,3 +175,5 @@ SELECT
 FROM oorder
 WHERE o_w_id = :w_id
 AND o_id > o_w_id + o_d_id*3000 + 2100 ;
+
+COMMIT;
