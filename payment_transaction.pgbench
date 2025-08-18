@@ -19,6 +19,7 @@ The district number (D_ID) is randomly selected within [1 ..10] from the home wa
 */
 
 -- 1. Update warehouse YTD
+-- PS Becomes a TPS bottleneck / serializer when scales < clients !
 UPDATE warehouse
 SET w_ytd = w_ytd + :amount
 WHERE w_id = :w_id;
@@ -59,11 +60,6 @@ FROM customer
 WHERE c_w_id = :w_id AND c_d_id = :d_id AND c_id = :c_id
 FOR UPDATE \gset
 
---\if :y <= 60
----- Case 2, the customer is selected based on customer last name
---\else
----- Case 1, the customer is selected based on customer number
---\endif
 
 -- 4. Update customer balance
 UPDATE customer
@@ -72,7 +68,7 @@ SET c_balance = c_balance - :amount,
     c_payment_cnt = c_payment_cnt + 1
 WHERE c_w_id = :c_w_id AND c_d_id = :d_id AND c_id = :c_id;
 
--- 5. If customer is bad credit, update c_data TODO
+-- 5. If customer is bad credit, update c_data -- SKIP, just adds a bit of computation to client
 -- \if :c_credit == 'BC'
 
 -- 6. Insert into history
