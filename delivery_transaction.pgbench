@@ -1,0 +1,59 @@
+-- TODO For each of 10 districts (d_id from 1 to 10):
+
+-- The Delivery transaction is intended to be executed in deferred mode through a queuing mechanism
+\sleep 50 ms
+
+SELECT coalesce(current_setting('tpcc_like.client_id_'||:client_id, true)::int8, 0) AS w_id \gset
+
+\if :w_id
+    SELECT 'OK - session is using w_id ' || :w_id ;
+\else
+    -- Pick a random warehouse for the whole duration of the session
+    SELECT w_id AS w_id FROM warehouse ORDER BY random() LIMIT 1 \gset
+    SELECT set_config( 'tpcc_like.client_id_'|| :client_id, ':w_id', false) ;
+\endif
+
+\set d_id random(1, 10)
+
+BEGIN;
+
+-- 1. Find oldest unfulfilled order
+SELECT no_o_id AS o_id
+FROM new_order
+WHERE no_w_id = :w_id AND no_d_id = :d_id
+ORDER BY no_o_id
+LIMIT 1
+FOR UPDATE SKIP LOCKED \gset
+
+-- 2. Delete from NEW_ORDER
+DELETE FROM new_order
+WHERE no_w_id = :w_id AND no_d_id = :d_id AND no_o_id = :o_id;
+
+\set carrier_id random(1, 10)
+-- 3. Update order with carrier ID
+UPDATE oorder
+SET o_carrier_id = :carrier_id
+WHERE o_w_id = :w_id AND o_d_id = :d_id AND o_id = :o_id;
+
+-- 4. Update order lines with delivery date
+UPDATE order_line
+SET ol_delivery_d = now()
+WHERE ol_w_id = :w_id AND ol_d_id = :d_id AND ol_o_id = :o_id;
+
+-- 5. Get customer ID from order
+SELECT o_c_id AS c_id
+FROM oorder
+WHERE o_w_id = :w_id AND o_d_id = :d_id AND o_id = :o_id \gset
+
+-- 6. Sum order line amounts
+SELECT SUM(ol_amount) AS sum_amount
+FROM order_line
+WHERE ol_w_id = :w_id AND ol_d_id = :d_id AND ol_o_id = :o_id \gset
+
+-- 7. Update customer balance and delivery count
+UPDATE customer
+SET c_balance = c_balance + :sum_amount,
+    c_delivery_cnt = c_delivery_cnt + 1
+WHERE c_w_id = :w_id AND c_d_id = :d_id AND c_id = :c_id;
+
+COMMIT;
