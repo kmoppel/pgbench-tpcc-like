@@ -10,10 +10,10 @@ Data population designed to be "additive" and parallel, for faster init.
 ```
 createdb tpcc
 
-psql -f 0_schema.sql 
+psql -f 0_schema.sql tpcc 
 
 # Init dataset with a size of 4*100=400 "warehouses" (1 WH ~ 110MB of data and indexes)
-pgbench -n -f 1_init_data.pgbench -c 4 -t 100 
+pgbench -n -f 1_init_data.pgbench -c 4 -t 100 tpcc 
 
 # Ensure stats collected
 vacuumdb --analyze -j 4 --schema public tpcc
@@ -23,7 +23,7 @@ psql -c "create extension if not exists pg_stat_statements" -c "select pg_stat_r
 
 # Test for 30min with 32 clients
 # PS Warehouse count / scale needs to be much higher than client count, not to get throttled by locking!
-pgbench -n -c 32 -T 1800 -f new_order.pgbench@45 -f payment_transaction.pgbench@43 -f order_status.pgbench@4 -f delivery_transaction.pgbench@4 -f stock_check.pgbench@4 tpcc
+pgbench -n -c 32 -T 1800 -P 300 -f new_order.pgbench@45 -f payment_transaction.pgbench@43 -f order_status.pgbench@4 -f delivery_transaction.pgbench@4 -f stock_check.pgbench@4 tpcc
 
 # Analyze results / stats ...
 ```
