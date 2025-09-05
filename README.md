@@ -38,10 +38,10 @@ git clone https://github.com/kmoppel/pgbench-tpcc-like.git && cd pgbench-tpcc-li
 
 createdb tpcc
 
-psql -f 0_schema.sql tpcc 
+psql -f 00_schema.sql tpcc 
 
 # Init dataset with a size of ~40GB. 4*100=400 "warehouses" (1 WH ~ 110MB of data and indexes)
-pgbench -n -f 1_init_data.pgbench -c 4 -t 100 tpcc 
+pgbench -n -f 01_init_data.pgbench -c 4 -t 100 tpcc 
 
 # Ensure stats collected
 vacuumdb --analyze -j 4 --schema public tpcc
