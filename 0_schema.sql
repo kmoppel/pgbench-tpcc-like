@@ -352,3 +352,64 @@ AND s_quantity < threshold;
 
 end;
 $$;
+
+create or replace function tpcc_utils.delivery_transaction(warehouse_id int8, district_id int, batch_size int default 10) returns int
+language plpgsql
+as $$
+DECLARE
+  delivered_order_id int8;
+  customer_id int8;
+  sum_amount numeric;
+  orders_processed int := 0;
+BEGIN
+
+FOR i IN 1..batch_size LOOP
+    -- 1. Find oldest unfulfilled order
+    SELECT no_o_id INTO delivered_order_id
+    FROM new_order
+    WHERE no_w_id = warehouse_id AND no_d_id = district_id
+    ORDER BY no_o_id
+    LIMIT 1
+    FOR UPDATE SKIP LOCKED;
+
+    IF delivered_order_id IS NULL THEN
+        RETURN orders_processed;
+    END IF;
+
+    -- 2. Delete from NEW_ORDER
+    DELETE FROM new_order
+    WHERE no_w_id = warehouse_id AND no_d_id = district_id AND no_o_id = delivered_order_id;
+
+    -- 3. Update order with carrier ID
+    UPDATE oorder
+    SET o_carrier_id = random()*10
+    WHERE o_w_id = warehouse_id AND o_d_id = district_id AND o_id = delivered_order_id;
+
+    -- 4. Update order lines with delivery date
+    UPDATE order_line
+    SET ol_delivery_d = now()
+    WHERE ol_w_id = warehouse_id AND ol_d_id = district_id AND ol_o_id = delivered_order_id;
+
+    -- 5. Get customer ID from order
+    SELECT o_c_id INTO customer_id
+    FROM oorder
+    WHERE o_w_id = warehouse_id AND o_d_id = district_id AND o_id = delivered_order_id;
+
+    -- 6. Sum order line amounts
+    SELECT SUM(ol_amount) INTO sum_amount
+    FROM order_line
+    WHERE ol_w_id = warehouse_id AND ol_d_id = district_id AND ol_o_id = delivered_order_id;
+
+    -- 7. Update customer balance and delivery count
+    UPDATE customer
+    SET c_balance = c_balance + sum_amount,
+        c_delivery_cnt = c_delivery_cnt + 1
+    WHERE c_w_id = warehouse_id AND c_d_id = district_id AND c_id = customer_id;
+
+    orders_processed := orders_processed + 1;
+END LOOP;
+
+RETURN orders_processed;
+
+END;
+$$;
