@@ -1,18 +1,44 @@
-# pgbench-tpcc
+# pgbench-tpcc-like
 
-A Pareto approach to the rather scientific TPCC benchmark, to utilize Postgres in a more real-life way, compared to the
-default pgbench transaction modes. Uses a mix of pgbench scripting + PL/pgSQL. 
+A more practical approach to the rather scientific TPCC benchmark, to utilize Postgres better for benchmarking
+and hardware validation purposes.
 
-Data population designed to be "additive" and parallel, for faster init.
+**This is NOT an implementation of TPCC workload and should not be referred to as one!**
+
+## The why
+
+For ages Postgres DBA-s have used the `pgbench` for quick hardware / config validation...but sadly all default
+pgbench transaction modes doing writing (*tpcb-like* and *simple-update*) are abnormally write-heavy and test
+basically only the *key-value* access scenario...which mostly is not very real-life at all for a RDBMS.
+
+TPC-C is already more real-life...but sadly the common benchmarking frameworks supporting it are often:
+* Overly complex / generic (to support other DB engines as well)
+* GUI-controlled
+* Customizations require knowing some less-known scripting language like TCL or Lua, or actual programming in Java etc,
+  which can be a mood killer for sure for a quick test
+* Make it hard to estimate the output DB size
+* Don't allow dynamic increase of the dataset / warehouse count
+
+# Implementation details
+
+* Uses a mix of SQL, PL/pgSQL and pgbench scripting - meaning easy modifications for anyone "friendly" with Postgres
+* Data population designed to be "additive" and parallel, for fast dataset population
+* Tables not duplicated "per warehouse"
+* Easier to calculate 1 warehouse = 1x 01_init_data.pgbench execution = ~100MiB of data
+* A few indexes have been added to be more realistic
+* Weights can easily be adjusted to steer the testing towards, say, more reads
+* Supports very long runtimes with more than 2B+ (64-bit IDs) orders 
 
 # Running
 
 ```
+git clone https://github.com/kmoppel/pgbench-tpcc-like.git && cd pgbench-tpcc-like 
+
 createdb tpcc
 
 psql -f 0_schema.sql tpcc 
 
-# Init dataset with a size of 4*100=400 "warehouses" (1 WH ~ 110MB of data and indexes)
+# Init dataset with a size of ~40GB. 4*100=400 "warehouses" (1 WH ~ 110MB of data and indexes)
 pgbench -n -f 1_init_data.pgbench -c 4 -t 100 tpcc 
 
 # Ensure stats collected
