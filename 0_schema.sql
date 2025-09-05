@@ -16,10 +16,10 @@ CREATE TABLE IF NOT EXISTS warehouse (
 
 CREATE TABLE IF NOT EXISTS item (
     i_id int NOT NULL,
+    i_im_id int NOT NULL,
     i_name varchar(24) NOT NULL,
     i_price numeric(5, 2) NOT NULL,
     i_data varchar(50) NOT NULL,
-    i_im_id int NOT NULL,
     PRIMARY KEY (i_id)
 );
 
@@ -27,9 +27,10 @@ CREATE TABLE IF NOT EXISTS stock (
     s_w_id int8 NOT NULL,
     s_i_id int NOT NULL,
     s_quantity int NOT NULL,
-    s_ytd numeric(8, 2) NOT NULL,
     s_order_cnt int NOT NULL,
     s_remote_cnt int NOT NULL,
+    s_mtime timestamp,
+    s_ytd numeric(8, 2) NOT NULL,
     s_data varchar(50) NOT NULL,
     s_dist_01 char(24) NOT NULL,
     s_dist_02 char(24) NOT NULL,
@@ -41,7 +42,6 @@ CREATE TABLE IF NOT EXISTS stock (
     s_dist_08 char(24) NOT NULL,
     s_dist_09 char(24) NOT NULL,
     s_dist_10 char(24) NOT NULL,
-    s_mtime timestamp,
     FOREIGN KEY (s_w_id) REFERENCES warehouse (w_id),
     FOREIGN KEY (s_i_id) REFERENCES item (i_id),
     PRIMARY KEY (s_w_id, s_i_id)
@@ -50,10 +50,10 @@ CREATE INDEX IF NOT EXISTS stock_mtime ON stock(s_mtime) WHERE s_mtime NOTNULL; 
 
 CREATE TABLE IF NOT EXISTS district (
     d_w_id int8 NOT NULL,
+    d_next_o_id int8 NOT NULL,
     d_id int NOT NULL,
     d_ytd numeric(12, 2) NOT NULL,
     d_tax numeric(4, 4) NOT NULL,
-    d_next_o_id int8 NOT NULL,
     d_name varchar(10) NOT NULL,
     d_street_1 varchar(20) NOT NULL,
     d_street_2 varchar(20) NOT NULL,
@@ -68,25 +68,25 @@ CREATE TABLE IF NOT EXISTS customer (
     c_w_id int8 NOT NULL,
     c_d_id int NOT NULL,
     c_id int NOT NULL,
+    c_ytd_payment float NOT NULL,
+    c_payment_cnt int NOT NULL,
+    c_delivery_cnt int NOT NULL,
+    c_since timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    c_mtime timestamp,
     c_discount numeric(4, 4) NOT NULL,
+    c_balance numeric(12, 2) NOT NULL,
     c_credit char(2) NOT NULL,
     c_last varchar(16) NOT NULL,
     c_first varchar(16) NOT NULL,
     c_credit_lim numeric(12, 2) NOT NULL,
-    c_balance numeric(12, 2) NOT NULL,
-    c_ytd_payment float NOT NULL,
-    c_payment_cnt int NOT NULL,
-    c_delivery_cnt int NOT NULL,
     c_street_1 varchar(20) NOT NULL,
     c_street_2 varchar(20) NOT NULL,
     c_city varchar(20) NOT NULL,
     c_state char(2) NOT NULL,
     c_zip char(9) NOT NULL,
     c_phone char(16) NOT NULL,
-    c_since timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
     c_middle char(2) NOT NULL,
     c_data varchar(500) NOT NULL,
-    c_mtime timestamp,
     FOREIGN KEY (c_w_id, c_d_id) REFERENCES district (d_w_id, d_id),
     PRIMARY KEY (c_w_id, c_d_id, c_id)
 );
@@ -95,8 +95,8 @@ CREATE INDEX IF NOT EXISTS customer_mtime ON customer(c_mtime) WHERE c_mtime NOT
 CREATE TABLE IF NOT EXISTS history (
     h_c_id int NOT NULL,
     h_c_d_id int NOT NULL,
-    h_c_w_id int8 NOT NULL,
     h_d_id int NOT NULL,
+    h_c_w_id int8 NOT NULL,
     h_w_id int8 NOT NULL,
     h_date timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
     h_amount numeric(6, 2) NOT NULL,
@@ -107,8 +107,8 @@ CREATE TABLE IF NOT EXISTS history (
 
 CREATE TABLE IF NOT EXISTS oorder (
     o_w_id int8 NOT NULL,
-    o_d_id int NOT NULL,
     o_id int8 NOT NULL,
+    o_d_id int NOT NULL,
     o_c_id int NOT NULL,
     o_carrier_id int DEFAULT NULL,
     o_ol_cnt int NOT NULL,
@@ -122,13 +122,13 @@ CREATE TABLE IF NOT EXISTS oorder (
 
 CREATE TABLE IF NOT EXISTS order_line (
     ol_w_id int8 NOT NULL,
-    ol_d_id int NOT NULL,
     ol_o_id int8 NOT NULL,
+    ol_supply_w_id int8 NOT NULL,
+    ol_delivery_d timestamp NULL DEFAULT NULL,
+    ol_d_id int NOT NULL,
     ol_number int NOT NULL,
     ol_i_id int NOT NULL,
-    ol_delivery_d timestamp NULL DEFAULT NULL,
     ol_amount numeric(6, 2) NOT NULL,
-    ol_supply_w_id int8 NOT NULL,
     ol_quantity numeric(6, 2) NOT NULL,
     ol_dist_info char(24) NOT NULL,
     FOREIGN KEY (ol_w_id, ol_d_id, ol_o_id) REFERENCES oorder (o_w_id, o_d_id, o_id),
@@ -139,8 +139,8 @@ CREATE TABLE IF NOT EXISTS order_line (
 
 CREATE TABLE IF NOT EXISTS new_order (
     no_w_id int8 NOT NULL,
-    no_d_id int NOT NULL,
     no_o_id int8 NOT NULL,
+    no_d_id int NOT NULL,
     FOREIGN KEY (no_w_id, no_d_id, no_o_id) REFERENCES oorder (o_w_id, o_d_id, o_id),
     PRIMARY KEY (no_w_id, no_d_id, no_o_id)
 );
