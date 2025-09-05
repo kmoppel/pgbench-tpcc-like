@@ -89,7 +89,7 @@ SELECT
 FROM generate_series(1, 10) gs_dist ;
 
 
-
+-- PRIMARY KEY (c_w_id, c_d_id, c_id)
 INSERT INTO customer (c_id, c_d_id, c_w_id, c_first, c_middle, c_last, c_street_1, c_street_2, c_city, c_state, c_zip,
     c_phone, c_credit, c_credit_lim, c_discount, c_balance, c_ytd_payment, c_payment_cnt, c_delivery_cnt, c_data)
 SELECT
@@ -132,9 +132,11 @@ SELECT
 FROM generate_series(1, 10) gs_dist, generate_series(1, 3000) gs_cust ;
 
 
+-- PRIMARY KEY (o_w_id, o_d_id, o_id),
+-- UNIQUE (o_w_id, o_d_id, o_c_id, o_id)
 INSERT INTO oorder (o_id, o_c_id, o_d_id, o_w_id, o_entry_d, o_carrier_id, o_ol_cnt, o_all_local)
 SELECT
-  :w_id + gs_dist * 3000 + gs_cust,
+  gs_cust,
   gs_cust,
   gs_dist,
   :w_id,
@@ -156,9 +158,9 @@ SELECT
   gs,
   tpcc_utils.random_int(1, 100000),
   o_w_id,
-  case when o_id < o_w_id + o_d_id*3000 + o_c_id + 2101 then o_entry_d else null end case,
+  case when o_id < 2101 then o_entry_d else null end case,
   5,
-  case when o_id < o_w_id + o_d_id*3000 + o_c_id + 2101 then 0 else tpcc_utils.random_float(0.01, 9999.99) end case,
+  case when o_id < 2101 then 0 else tpcc_utils.random_float(0.01, 9999.99) end case,
   tpcc_utils.random_text_uuid_based(24, 24)
 -- For each row in the ORDER table a number of rows in the ORDER-LINE table equal to O_OL_CNT
 FROM oorder, generate_series(1, oorder.o_ol_cnt) gs
@@ -174,6 +176,6 @@ SELECT
   o_w_id
 FROM oorder
 WHERE o_w_id = :w_id
-AND o_id > o_w_id + o_d_id*3000 + 2100 ;
+AND o_id > 2100 ;
 
 COMMIT;

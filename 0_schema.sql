@@ -1,4 +1,5 @@
 DROP TABLE IF EXISTS warehouse, item, stock, district, customer, history, oorder, order_line, new_order ;
+-- TRUNCATE TABLE warehouse, item, stock, district, customer, history, oorder, order_line, new_order CASCADE ;
 
 CREATE UNLOGGED TABLE IF NOT EXISTS warehouse (
     w_id int8 NOT NULL,
@@ -45,7 +46,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS stock (
     FOREIGN KEY (s_i_id) REFERENCES item (i_id),
     PRIMARY KEY (s_w_id, s_i_id)
 );
-CREATE INDEX IF NOT EXISTS stock_mtime ON stock(s_mtime) WHERE s_mtime NOTNULL;
+CREATE INDEX IF NOT EXISTS stock_mtime ON stock(s_mtime) WHERE s_mtime NOTNULL;  -- ADDED
 
 CREATE UNLOGGED TABLE IF NOT EXISTS district (
     d_w_id int8 NOT NULL,
@@ -89,7 +90,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS customer (
     FOREIGN KEY (c_w_id, c_d_id) REFERENCES district (d_w_id, d_id),
     PRIMARY KEY (c_w_id, c_d_id, c_id)
 );
-CREATE INDEX IF NOT EXISTS customer_mtime ON customer(c_mtime) WHERE c_mtime NOTNULL;
+CREATE INDEX IF NOT EXISTS customer_mtime ON customer(c_mtime) WHERE c_mtime NOTNULL;  -- ADDED
 
 CREATE UNLOGGED TABLE IF NOT EXISTS history (
     h_c_id int NOT NULL,
