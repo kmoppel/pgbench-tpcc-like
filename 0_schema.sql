@@ -1,7 +1,7 @@
 DROP TABLE IF EXISTS warehouse, item, stock, district, customer, history, oorder, order_line, new_order ;
 -- TRUNCATE TABLE warehouse, item, stock, district, customer, history, oorder, order_line, new_order CASCADE ;
 
-CREATE UNLOGGED TABLE IF NOT EXISTS warehouse (
+CREATE TABLE IF NOT EXISTS warehouse (
     w_id int8 NOT NULL,
     w_ytd numeric(12, 2) NOT NULL,
     w_tax numeric(4, 4) NOT NULL,
@@ -14,7 +14,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS warehouse (
     PRIMARY KEY (w_id)
 );
 
-CREATE UNLOGGED TABLE IF NOT EXISTS item (
+CREATE TABLE IF NOT EXISTS item (
     i_id int NOT NULL,
     i_name varchar(24) NOT NULL,
     i_price numeric(5, 2) NOT NULL,
@@ -23,7 +23,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS item (
     PRIMARY KEY (i_id)
 );
 
-CREATE UNLOGGED TABLE IF NOT EXISTS stock (
+CREATE TABLE IF NOT EXISTS stock (
     s_w_id int8 NOT NULL,
     s_i_id int NOT NULL,
     s_quantity int NOT NULL,
@@ -48,7 +48,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS stock (
 );
 CREATE INDEX IF NOT EXISTS stock_mtime ON stock(s_mtime) WHERE s_mtime NOTNULL;  -- ADDED
 
-CREATE UNLOGGED TABLE IF NOT EXISTS district (
+CREATE TABLE IF NOT EXISTS district (
     d_w_id int8 NOT NULL,
     d_id int NOT NULL,
     d_ytd numeric(12, 2) NOT NULL,
@@ -64,7 +64,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS district (
     PRIMARY KEY (d_w_id, d_id)
 );
 
-CREATE UNLOGGED TABLE IF NOT EXISTS customer (
+CREATE TABLE IF NOT EXISTS customer (
     c_w_id int8 NOT NULL,
     c_d_id int NOT NULL,
     c_id int NOT NULL,
@@ -92,7 +92,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS customer (
 );
 CREATE INDEX IF NOT EXISTS customer_mtime ON customer(c_mtime) WHERE c_mtime NOTNULL;  -- ADDED
 
-CREATE UNLOGGED TABLE IF NOT EXISTS history (
+CREATE TABLE IF NOT EXISTS history (
     h_c_id int NOT NULL,
     h_c_d_id int NOT NULL,
     h_c_w_id int8 NOT NULL,
@@ -105,7 +105,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS history (
     FOREIGN KEY (h_w_id, h_d_id) REFERENCES district (d_w_id, d_id)
 );
 
-CREATE UNLOGGED TABLE IF NOT EXISTS oorder (
+CREATE TABLE IF NOT EXISTS oorder (
     o_w_id int8 NOT NULL,
     o_d_id int NOT NULL,
     o_id int8 NOT NULL,
@@ -120,7 +120,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS oorder (
 );
 
 
-CREATE UNLOGGED TABLE IF NOT EXISTS order_line (
+CREATE TABLE IF NOT EXISTS order_line (
     ol_w_id int8 NOT NULL,
     ol_d_id int NOT NULL,
     ol_o_id int8 NOT NULL,
@@ -137,7 +137,7 @@ CREATE UNLOGGED TABLE IF NOT EXISTS order_line (
 );
 
 
-CREATE UNLOGGED TABLE IF NOT EXISTS new_order (
+CREATE TABLE IF NOT EXISTS new_order (
     no_w_id int8 NOT NULL,
     no_d_id int NOT NULL,
     no_o_id int8 NOT NULL,
