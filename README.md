@@ -28,7 +28,8 @@ TPC-C is already more real-life...but sadly the common benchmarking frameworks s
 * Data population designed to be "additive" and parallel
 * Fast dataset population, a la generates_series()
 * Tables not duplicated "per warehouse"
-* Easier to calculate 1 warehouse = 1x 01_init_data.pgbench execution = ~100MiB of data
+* Limited randomness on "warehouse" selection - only the last 20% of warehouses are active (by default)
+* 1 warehouse = 1x 01_init_data.pgbench execution = ~100MiB of data
 * A few secondary indexes have been added to be more realistic (TPC-C spec only has PK/UQ-s)
 * Weights can easily be adjusted to steer the testing towards, say, more reads
 * Supports very long runtimes with more than 2B+ (64-bit IDs) orders 
@@ -57,3 +58,12 @@ pgbench -n -c 32 -T 1800 -P 300 -f new_order.pgbench@45 -f payment_transaction.p
 
 # Analyze results / stats ...
 ```
+
+# Contributing
+
+Feedback and PR-s very much appreciated!
+
+# TODO
+
+* Investigate if can support running in `--protocol=prepared` mode as well.
+* Add a Dockerfile + auto build 
