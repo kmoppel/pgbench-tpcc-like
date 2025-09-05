@@ -1,9 +1,10 @@
 # pgbench-tpcc-like
 
-A more practical approach to the rather scientific TPCC benchmark, to utilize Postgres better for benchmarking
-and hardware validation purposes.
+A more practical approach to the rather scientific TPC-C benchmark, to utilize Postgres better for the more daily
+benchmarking and hardware validation purposes.
 
-**This is NOT an implementation of TPCC workload and should not be referred to as one!**
+**This is NOT an implementation of the official [TPC-C](https://www.tpc.org/tpc_documents_current_versions/current_specifications5.asp)
+workload and should not be referred to as one!**
 
 ## The why
 
@@ -14,10 +15,11 @@ basically only the *key-value* access scenario...which mostly is not very real-l
 TPC-C is already more real-life...but sadly the common benchmarking frameworks supporting it are often:
 * Overly complex / generic (to support other DB engines as well)
 * GUI-controlled
-* Customizations require knowing some less-known scripting language like TCL or Lua, or actual programming in Java etc,
+* Bring in a bunch of dependencies
+* Customizations require knowing some less-known scripting language like Tcl or Lua, or actual programming in Java etc,
   which can be a mood killer for sure for a quick test
 * Make it hard to estimate the output DB size
-* Don't allow dynamic increase of the dataset / warehouse count
+* Don't allow to dynamically increase of the dataset / warehouse count
 
 # Implementation details
 
