@@ -1,12 +1,4 @@
-SELECT coalesce(current_setting('tpcc_like.client_id_'||:client_id, true)::int8, 0) AS w_id \gset
-
-\if :w_id
-    SELECT 'OK - session is using w_id ' || :w_id ;
-\else
-    -- Pick a random warehouse for the whole duration of the session
-    SELECT w_id FROM ( SELECT w_id FROM warehouse ORDER BY w_id DESC LIMIT (select ceil(count(*)*0.2) from warehouse) ) x ORDER BY random() LIMIT 1 \gset
-    SELECT set_config( 'tpcc_like.client_id_'|| :client_id, ':w_id', false) ;
-\endif
+SELECT w_id FROM ( SELECT w_id FROM warehouse ORDER BY w_id DESC LIMIT (select ceil(count(*)*0.2) from warehouse) ) x ORDER BY random() LIMIT 1 \gset
 
 \set d_id random(1, 10)
 
