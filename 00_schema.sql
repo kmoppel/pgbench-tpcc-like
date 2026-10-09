@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS warehouse (
     w_zip char(9) NOT NULL,
     PRIMARY KEY (w_id)
 );
+COMMENT ON TABLE warehouse IS 'created by pgbench-tpcc-like';
 
 CREATE TABLE IF NOT EXISTS item (
     i_id int NOT NULL,
@@ -28,12 +29,15 @@ CREATE TABLE IF NOT EXISTS item (
     i_data varchar(50) NOT NULL,
     PRIMARY KEY (i_id)
 );
+
 -- ADDED: covering index enables an index-only scan for the new_order item lookup
 -- (SELECT i_price,i_name,i_data WHERE i_id=?). item is read-only after load, so its
 -- visibility map stays all-visible and the index-only scan eliminates the heap fetch.
 -- This read runs ~5-15x per new_order txn (45% of the mix) over 100k random i_id -> the
 -- single highest-frequency read; removing the heap hop cuts the index->heap pointer-chase.
 CREATE INDEX IF NOT EXISTS item_covering ON item(i_id) INCLUDE (i_price, i_name, i_data);  -- ADDED
+
+COMMENT ON TABLE item IS 'created by pgbench-tpcc-like';
 
 CREATE TABLE IF NOT EXISTS stock (
     s_w_id int8 NOT NULL,
@@ -59,6 +63,7 @@ CREATE TABLE IF NOT EXISTS stock (
     PRIMARY KEY (s_w_id, s_i_id)
 );
 CREATE INDEX IF NOT EXISTS stock_mtime ON stock(s_mtime) WHERE s_mtime NOTNULL;  -- ADDED
+COMMENT ON TABLE stock IS 'created by pgbench-tpcc-like';
 
 CREATE TABLE IF NOT EXISTS district (
     d_w_id int8 NOT NULL,
@@ -75,6 +80,7 @@ CREATE TABLE IF NOT EXISTS district (
     FOREIGN KEY (d_w_id) REFERENCES warehouse (w_id),
     PRIMARY KEY (d_w_id, d_id)
 );
+COMMENT ON TABLE district IS 'created by pgbench-tpcc-like';
 
 CREATE TABLE IF NOT EXISTS customer (
     c_w_id int8 NOT NULL,
@@ -103,6 +109,7 @@ CREATE TABLE IF NOT EXISTS customer (
     PRIMARY KEY (c_w_id, c_d_id, c_id)
 );
 CREATE INDEX IF NOT EXISTS customer_mtime ON customer(c_mtime) WHERE c_mtime NOTNULL;  -- ADDED
+COMMENT ON TABLE customer IS 'created by pgbench-tpcc-like';
 
 CREATE TABLE IF NOT EXISTS history (
     h_c_id int NOT NULL,
@@ -116,6 +123,7 @@ CREATE TABLE IF NOT EXISTS history (
     FOREIGN KEY (h_c_w_id, h_c_d_id, h_c_id) REFERENCES customer (c_w_id, c_d_id, c_id),
     FOREIGN KEY (h_w_id, h_d_id) REFERENCES district (d_w_id, d_id)
 );
+COMMENT ON TABLE history IS 'created by pgbench-tpcc-like';
 
 CREATE TABLE IF NOT EXISTS oorder (
     o_w_id int8 NOT NULL,
@@ -130,6 +138,7 @@ CREATE TABLE IF NOT EXISTS oorder (
     FOREIGN KEY (o_w_id, o_d_id, o_c_id) REFERENCES customer (c_w_id, c_d_id, c_id),
     UNIQUE (o_w_id, o_d_id, o_c_id, o_id)
 );
+COMMENT ON TABLE oorder IS 'created by pgbench-tpcc-like';
 
 
 CREATE TABLE IF NOT EXISTS order_line (
@@ -147,6 +156,7 @@ CREATE TABLE IF NOT EXISTS order_line (
     FOREIGN KEY (ol_supply_w_id, ol_i_id) REFERENCES stock (s_w_id, s_i_id),
     PRIMARY KEY (ol_w_id, ol_d_id, ol_o_id, ol_number)
 );
+COMMENT ON TABLE order_line IS 'created by pgbench-tpcc-like';
 
 
 CREATE TABLE IF NOT EXISTS new_order (
@@ -156,6 +166,7 @@ CREATE TABLE IF NOT EXISTS new_order (
     FOREIGN KEY (no_w_id, no_d_id, no_o_id) REFERENCES oorder (o_w_id, o_d_id, o_id),
     PRIMARY KEY (no_w_id, no_d_id, no_o_id)
 );
+COMMENT ON TABLE new_order IS 'created by pgbench-tpcc-like';
 
 
 /* TPCC_UTILS schema + functions
