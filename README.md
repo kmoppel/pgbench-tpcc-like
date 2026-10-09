@@ -55,19 +55,9 @@ psql -c "create extension if not exists pg_stat_statements" \
 
 # Test for 30min with 32 clients
 # PS Warehouse count / scale needs to be much higher than client count, not to get throttled by locking!
-# PS2 Need to explictly set ACTIVE_WHS! Here only 30% of warehouses are being actively used
-# PS3 Need to explicitly set NUM_WHS to the loaded warehouse count (= #executions of 01_init_data,
-#     i.e. clients*transactions of the init step; 4*100=400 above). The scripts pick the warehouse
-#     client-side from this, so it must match the data or w_id will go out of range.
-pgbench -n -c 32 -T 1800 -P 300 -D ACTIVE_WHS=0.3 -D NUM_WHS=400 \
-  -f new_order.pgbench@45 -f payment_transaction.pgbench@43 -f order_status.pgbench@4 \
-  -f delivery_transaction.pgbench@4 -f stock_check.pgbench@4 tpcc
+# PS2 Need to explictly set ACTIVE_WHS! Here only 30% of warehouses are being actively used to similate common Pareto-like user distribution.
+# PS3 Need to explicitly set NUM_WHS to the warehouse count (i.e. clients*transactions from the init step; 4*100=400 above).
 
-# PS4 Each script wraps its work in a single BEGIN/COMMIT, so the run does ~1 DB commit per
-#     transaction (not one per statement) - far fewer WAL flushes.
-# PS5 Once warmed up, re-run with `-M prepared` to skip per-statement re-parsing
-#     (extended-protocol prepared statements). Use it only on the benchmark run, NOT on the
-#     one-shot init step above:
 pgbench -n -M prepared -c 32 -T 1800 -P 300 -D ACTIVE_WHS=0.3 -D NUM_WHS=400 \
   -f new_order.pgbench@45 -f payment_transaction.pgbench@43 -f order_status.pgbench@4 \
   -f delivery_transaction.pgbench@4 -f stock_check.pgbench@4 tpcc
@@ -81,5 +71,5 @@ Feedback and PR-s very much appreciated!
 
 # TODO
 
-* Investigate if can support running in `--protocol=prepared` mode as well.
-* Add a Dockerfile + auto build 
+* Add a Dockerfile + auto build + a run wrapper to remove some boilerplate and auto-init schema if not yet done
+  - So that could run with standard weigths like: `docker run --rm pgbench-tpcc-like -- -c 32 -T 1800 -W 400 -A 0.3 $DATABASE_URL`
