@@ -1,4 +1,7 @@
-SELECT w_id FROM ( SELECT w_id FROM warehouse ORDER BY w_id DESC LIMIT (select ceil(count(*)*:ACTIVE_WHS::float) from warehouse) ) x ORDER BY random() LIMIT 1 \gset
+-- Pick a warehouse from the active hot set (top ACTIVE_WHS by w_id) client-side. w_id is a
+-- contiguous PK 1..NUM_WHS, so "top k by w_id" == [NUM_WHS-k+1, NUM_WHS]; avoids a per-txn count()+sort.
+\set active_k greatest(1, int(:NUM_WHS * :ACTIVE_WHS))
+\set w_id random(:NUM_WHS - :active_k + 1, :NUM_WHS)
 
 \set d_id random(1, 10)
 

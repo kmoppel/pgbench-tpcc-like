@@ -30,7 +30,7 @@ INSERT INTO warehouse (
   w_ytd
 )
 SELECT
-  (extract(epoch from now()) * 1e6 )::int8,
+  nextval('warehouse_w_id_seq'),
   'wh-' || tpcc_utils.random_text_uuid_based(3,7),
   'str-' || tpcc_utils.random_text_uuid_based(6,16),
   'str-' || tpcc_utils.random_text_uuid_based(6,16),

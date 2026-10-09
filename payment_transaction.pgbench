@@ -1,4 +1,7 @@
-SELECT w_id FROM ( SELECT w_id FROM warehouse ORDER BY w_id DESC LIMIT (select ceil(count(*)*0.2) from warehouse) ) x ORDER BY random() LIMIT 1 \gset
+-- Pick a warehouse from the active hot set (top ACTIVE_WHS by w_id) client-side. w_id is a
+-- contiguous PK 1..NUM_WHS, so "top k by w_id" == [NUM_WHS-k+1, NUM_WHS]; avoids a per-txn count()+sort.
+\set active_k greatest(1, int(:NUM_WHS * :ACTIVE_WHS))
+\set w_id random(:NUM_WHS - :active_k + 1, :NUM_WHS)
 
 \set amount random(1, 5000)
 \set d_id random(1, 10)
@@ -9,6 +12,8 @@ SELECT w_id FROM ( SELECT w_id FROM warehouse ORDER BY w_id DESC LIMIT (select c
 /*
 The district number (D_ID) is randomly selected within [1 ..10] from the home warehouse (D_W_ID) = W_ID).
 */
+
+BEGIN;
 
 -- 1. Update warehouse YTD
 -- PS Becomes a TPS bottleneck / serializer when scales < clients !
@@ -29,9 +34,13 @@ This can be implemented by generating two random numbers x and y within [1 .. 10
 */
 -- 3. Get customer by ID or name (if using name, fetch mid-record by last name)
 \if :y <= 60
-    SELECT tpcc_utils.c_last_name_from_random_syllables() AS c_last_random \gset
-    SELECT c_id FROM customer
-    WHERE c_w_id = :w_id AND c_d_id = :d_id AND c_last = ':c_last_random'
+    -- Generate the random last name server-side (pinned once via MATERIALIZED CTE) so the
+    -- value is never a pgbench variable inside a quoted string -> works under -M prepared too.
+    WITH rnd AS MATERIALIZED (
+      SELECT tpcc_utils.c_last_name_from_random_syllables() AS c_last
+    )
+    SELECT c_id FROM customer, rnd
+    WHERE customer.c_w_id = :w_id AND customer.c_d_id = :d_id AND customer.c_last = rnd.c_last
     UNION ALL
     SELECT tpcc_utils.random_int(1, 3000)
     LIMIT 1 \gset
@@ -44,12 +53,13 @@ This can be implemented by generating two random numbers x and y within [1 .. 10
     FROM customer
     WHERE c_w_id = :w_id AND c_d_id = :d_id AND c_id = :c_id \gset
 \else
-    SELECT w_id AS c_w_id FROM warehouse ORDER BY random() LIMIT 1 \gset
+    -- remote warehouse: uniform over all warehouses, client-side
+    \set c_w_id random(1, :NUM_WHS)
 \endif
 
 SELECT c_balance, c_credit
 FROM customer
-WHERE c_w_id = :w_id AND c_d_id = :d_id AND c_id = :c_id
+WHERE c_w_id = :c_w_id AND c_d_id = :d_id AND c_id = :c_id
 FOR UPDATE \gset
 
 
@@ -73,3 +83,5 @@ VALUES (
     :c_id, :d_id, :c_w_id,
     :d_id, :w_id, now(), :amount, 'h_data'
 );
+
+COMMIT;

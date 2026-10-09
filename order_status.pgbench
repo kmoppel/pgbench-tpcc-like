@@ -1,4 +1,7 @@
-SELECT w_id FROM ( SELECT w_id FROM warehouse ORDER BY w_id DESC LIMIT (select ceil(count(*)*:ACTIVE_WHS::float) from warehouse) ) x ORDER BY random() LIMIT 1 \gset
+-- Pick a warehouse from the active hot set (top ACTIVE_WHS by w_id) client-side. w_id is a
+-- contiguous PK 1..NUM_WHS, so "top k by w_id" == [NUM_WHS-k+1, NUM_WHS]; avoids a per-txn count()+sort.
+\set active_k greatest(1, int(:NUM_WHS * :ACTIVE_WHS))
+\set w_id random(:NUM_WHS - :active_k + 1, :NUM_WHS)
 
 \set d_id random(1, 10)
 \set y random(1, 100)
@@ -10,9 +13,13 @@ number (C_W_ID, C_D_ID, C_ID)
 */
 -- 3. Get customer by ID or name (if using name, fetch mid-record by last name)
 \if :y <= 60
-    SELECT tpcc_utils.c_last_name_from_random_syllables() AS c_last_random \gset
-    SELECT c_id FROM customer
-    WHERE c_w_id = :w_id AND c_d_id = :d_id AND c_last = ':c_last_random'
+    -- Generate the random last name server-side (pinned once via MATERIALIZED CTE) so the
+    -- value is never a pgbench variable inside a quoted string -> works under -M prepared too.
+    WITH rnd AS MATERIALIZED (
+      SELECT tpcc_utils.c_last_name_from_random_syllables() AS c_last
+    )
+    SELECT c_id FROM customer, rnd
+    WHERE customer.c_w_id = :w_id AND customer.c_d_id = :d_id AND customer.c_last = rnd.c_last
     UNION ALL
     SELECT tpcc_utils.random_int(1, 3000)
     LIMIT 1 \gset
